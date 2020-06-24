@@ -187,19 +187,28 @@ class IndexController extends AbstractAppController
     public function create(Request $request): Response
     {
         $indexModel = new ElasticsearchIndexModel();
-        $form = $this->createForm(CreateIndexType::class, $indexModel);
+        $form = $this->createForm(CreateIndexType::class, $indexModel, ['static_settings' => $indexModel->getStaticSettings(), 'dynamic_settings' => $indexModel->getDynamicSettings()]);
 
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             try {
                 $json = [];
-                if ($indexModel->getSettings()) {
-                    $json['settings'] = json_decode($indexModel->getSettings(), true);
-                }
                 if ($indexModel->getMappings()) {
                     $json['mappings'] = json_decode($indexModel->getMappings(), true);
                 }
+                $settings = [];
+                foreach ($indexModel->getStaticSettings() as $staticSetting => $defaultValue) {
+                    if ($indexModel->getSetting($staticSetting)) {
+                        $settings[$staticSetting] = $indexModel->getSetting($staticSetting);
+                    }
+                }
+                foreach ($indexModel->getDynamicSettings() as $dynamicSetting => $defaultValue) {
+                    if ($indexModel->getSetting($dynamicSetting)) {
+                        $settings[$dynamicSetting] = $indexModel->getSetting($dynamicSetting);
+                    }
+                }
+                $json['settings'] = $settings;
                 $callRequest = new CallRequestModel();
                 $callRequest->setMethod('PUT');
                 $callRequest->setPath('/'.$indexModel->getName());
@@ -255,7 +264,7 @@ class IndexController extends AbstractAppController
 
         $indexModel = new ElasticsearchIndexModel();
         $indexModel->convert($index);
-        $form = $this->createForm(CreateIndexType::class, $indexModel, ['update' => true]);
+        $form = $this->createForm(CreateIndexType::class, $indexModel, ['dynamic_settings' => $indexModel->getDynamicSettings(), 'update' => true]);
 
         $form->handleRequest($request);
 
@@ -271,6 +280,21 @@ class IndexController extends AbstractAppController
 
                     $this->addFlash('info', json_encode($callResponse->getContent()));
                 }
+
+                $settings = [];
+                foreach ($indexModel->getDynamicSettings() as $dynamicSetting => $defaultValue) {
+                    if ($indexModel->getSetting($dynamicSetting)) {
+                        $settings[$dynamicSetting] = $indexModel->getSetting($dynamicSetting);
+                    }
+
+                }
+                $callRequest = new CallRequestModel();
+                $callRequest->setMethod('PUT');
+                $callRequest->setPath('/'.$indexModel->getName().'/_settings');
+                $callRequest->setJson($settings);
+                $callResponse = $this->callManager->call($callRequest);
+
+                $this->addFlash('info', json_encode($callResponse->getContent()));
 
                 return $this->redirectToRoute('indices_read', ['index' => $indexModel->getName()]);
             } catch (CallException $e) {

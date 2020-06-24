@@ -32,9 +32,18 @@ class CreateIndexType extends AbstractType
 
         if (false == $options['update']) {
             $fields[] = 'name';
-            $fields[] = 'settings';
         }
         $fields[] = 'mappings';
+
+        if (false == $options['update']) {
+            foreach ($options['static_settings'] as $staticSetting => $defaultValue) {
+                $fields[] = $staticSetting;
+            }
+        }
+
+        foreach ($options['dynamic_settings'] as $dynamicSetting => $defaultValue) {
+            $fields[] = $dynamicSetting;
+        }
 
         foreach ($fields as $field) {
             switch ($field) {
@@ -44,9 +53,6 @@ class CreateIndexType extends AbstractType
                         'required' => true,
                         'constraints' => [
                             new NotBlank(),
-                        ],
-                        'attr' => [
-                            'data-break-after' => 'yes',
                         ],
                     ]);
                     break;
@@ -69,6 +75,17 @@ class CreateIndexType extends AbstractType
                         'constraints' => [
                             new Json(),
                         ],
+                        'attr' => [
+                            'data-break-after' => 'yes',
+                        ],
+                    ]);
+                    break;
+                default:
+                    $builder->add(str_replace('.', '_', $field), TextType::class, [
+                        'property_path' => 'settings['.$field.']',
+                        'label' => $field,
+                        'required' => false,
+                        'translation_domain' => false,
                     ]);
                     break;
             }
@@ -100,6 +117,8 @@ class CreateIndexType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => ElasticsearchIndexModel::class,
+            'static_settings' => [],
+            'dynamic_settings' => [],
             'update' => false,
         ]);
     }
