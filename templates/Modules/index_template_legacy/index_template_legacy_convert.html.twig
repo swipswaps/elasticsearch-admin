@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+{% import 'Import/app_import.html.twig' as appImport %}
+
+{% block head_title %}{{ 'index_templates_legacy'|trans }} -- {{ 'convert'|trans }}{% endblock %}
+
+{% block heading_1 %}
+    {{ appImport.heading({'level': 1, 'title': 'index_templates_legacy'|trans}) }}
+{% endblock %}
+
+{% block tabs %}
+    {% include 'Modules/index_template_legacy/index_template_legacy_tabs.html.twig' with {'active': 'convert'} %}
+{% endblock %}
+
+{% block main_content %}
+    {% embed 'Embed/card_embed.html.twig' %}
+        {% import 'Import/app_import.html.twig' as appImport %}
+        {% block content %}
+            {{ appImport.heading({'level': 3, 'title': 'convert'|trans}) }}
+
+            {{ appImport.form({'form': form}) }}
+
+        {% endblock %}
+    {% endembed %}
+{% endblock %}

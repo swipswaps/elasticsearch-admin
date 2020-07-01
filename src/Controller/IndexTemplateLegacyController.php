@@ -6,6 +6,8 @@ use App\Controller\AbstractAppController;
 use App\Exception\CallException;
 use App\Form\CreateIndexTemplateLegacyType;
 use App\Manager\ElasticsearchIndexTemplateLegacyManager;
+use App\Form\ConvertIndexTemplateLegacyType;
+use App\Model\CallRequestModel;
 use App\Model\ElasticsearchIndexTemplateLegacyModel;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
@@ -41,6 +43,29 @@ class IndexTemplateLegacyController extends AbstractAppController
                 'page' => 1,
                 'size' => count($templates),
             ]),
+        ]);
+    }
+
+    /**
+     * @Route("/index-templates-legacy/convert", name="index_templates_legacy_convert")
+     */
+    public function convert(Request $request): Response
+    {
+        $form = $this->createForm(ConvertIndexTemplateLegacyType::class);
+
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $callRequest = new CallRequestModel();
+            $callRequest->setPath('/_template');
+            $callResponse = $this->callManager->call($callRequest);
+            $indexTemplates = $callResponse->getContent();
+
+            return $this->redirectToRoute('index_templates_legacy');
+        }
+
+        return $this->renderAbstract($request, 'Modules/index_template_legacy/index_template_legacy_convert.html.twig', [
+            'form' => $form->createView(),
         ]);
     }
 

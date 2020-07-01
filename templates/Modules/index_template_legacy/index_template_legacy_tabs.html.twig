@@ -8,4 +8,8 @@
             <a class="nav-link{% if 'create_index_template' == active %} active{% endif %}" href="{{ path('index_templates_legacy_create') }}">{{ 'create_index_template'|trans }}</a>
         </li>
     {% endif %}
+
+    <li class="nav-item">
+        <a class="nav-link{% if 'convert' == active %} active{% endif %}" href="{{ path('index_templates_legacy_convert') }}">{{ 'convert'|trans }}</a>
+    </li>
 </ul>
