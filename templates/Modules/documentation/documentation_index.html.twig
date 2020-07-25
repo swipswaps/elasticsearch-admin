@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+{% import 'Import/app_import.html.twig' as appImport %}
+
+{% block head_title %}{{ 'documentation'|trans }} -  {{ page|trans }}{% endblock %}
+
+{% block heading_1 %}
+    {{ appImport.heading({'level': 1, 'title': 'documentation'|trans}) }}
+{% endblock %}
+
+{% block main_content %}
+    {% embed 'Embed/card_embed.html.twig' %}
+        {% block content %}
+            {% apply markdown_to_html %}
+            {{ markdown }}
+            {% endapply %}
+        {% endblock %}
+    {% endembed %}
+{% endblock %}
