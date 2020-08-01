@@ -37,12 +37,6 @@ class ElasticsearchIndexQueryType extends AbstractType
                         'required' => false,
                     ]);
                     break;
-                case 'page':
-                    $builder->add('page', HiddenType::class, [
-                        'label' => 'page',
-                        'required' => false,
-                    ]);
-                    break;
             }
         }
     }

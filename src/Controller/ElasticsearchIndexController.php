@@ -1342,10 +1342,9 @@ class ElasticsearchIndexController extends AbstractAppController
                 'q' => $form->get('query')->getData(),
                 'sort' => $sort,
                 'size' => $size,
-                'from' => ($size * $page) - $size,
             ];
             $callRequest = new CallRequestModel();
-            $callRequest->setPath('/'.$index->getName().'/_search');
+            $callRequest->setPath('/'.$index->getName().'/_search?scroll=1m');
             $callRequest->setQuery($query);
             $callResponse = $this->callManager->call($callRequest);
             $documents = $callResponse->getContent();
@@ -1359,10 +1358,8 @@ class ElasticsearchIndexController extends AbstractAppController
                 $total = $documents['hits']['total'];
             }
 
-            $parameters['documents'] = $this->paginatorManager->paginate([
-                'route' => 'indices_read_search',
-                'route_parameters' => ['index' => $index->getName()],
-                'total' => $total,
+            $parameters['documents'] = [
+                '_scroll_id' => $documents['_scroll_id'],
                 'rows' => $documents['hits']['hits'],
                 'page' => $page,
                 'size' => 100,
@@ -1373,4 +1370,90 @@ class ElasticsearchIndexController extends AbstractAppController
 
         return $this->renderAbstract($request, 'Modules/index/index_read_search.html.twig', $parameters);
     }
+
+    /**
+     * @Route("/indices/{index}/search/scroll", name="indices_read_search_scroll")
+     */
+    public function scroll(Request $request, string $index): JsonResponse
+    {
+        $index = $this->elasticsearchIndexManager->getByName($index);
+
+        if (false == $index) {
+            throw new NotFoundHttpException();
+        }
+
+        $this->denyAccessUnlessGranted('INDEX_SEARCH', $index);
+
+        $content = $request->getContent();
+        $content = json_decode($content, true);
+
+        try {
+            $callRequest = new CallRequestModel();
+            $callRequest->setMethod('POST');
+            $callRequest->setPath('/_search/scroll');
+            $callRequest->setJson(['scroll' => '1m', 'scroll_id' => $content['_scroll_id']]);
+            $callResponse = $this->callManager->call($callRequest);
+            $content = $callResponse->getContent();
+
+            $documents = [];
+            if (true == isset($content['hits']['hits'])) {
+                foreach ($content['hits']['hits'] as $row) {
+                    $document = [];
+                    $document['_source'] = json_encode($row['_source'], JSON_PRETTY_PRINT);
+                    $document['_id'] = $row['_id'];
+                    $document['_score'] = $row['_score'];
+                    $document['fields'] = [];
+
+                    foreach ($index->getMappingsFlat() as $field => $mapping) {
+                        $value = $this->retrieveValue($row['_source'], $field);
+                        if (is_array($value)) {
+                        } else {
+                            $document['fields'][$field] = [
+                                'type' => $mapping['type'],
+                                'value' => $value,
+                            ];
+                        }
+                    }
+                    $documents[] = $document;
+                }
+            }
+
+            $json = [
+                'error' => false,
+                'content' => [
+                    '_scroll_id' => $content['_scroll_id'],
+                    'documents' => $documents,
+                ],
+            ];
+
+        } catch (CallException $e) {
+            $json = [
+                'error' => true,
+                'message' => $e->getMessage(),
+            ];
+        }
+
+        return new JsonResponse($json, JsonResponse::HTTP_OK);
+    }
+
+    private function retrieveValue(array $source, string $field)
+    {
+        $value = false;
+
+        if (true == isset($source[$field])) {
+            return $source[$field];
+        } else {
+            $keys = explode('.', $field);
+
+            $arr = $source;
+            foreach ($keys as $key) {
+                $arr = &$arr[$key];
+            }
+
+            $value = $arr;
+        }
+
+        return $value;
+    }
+
 }
