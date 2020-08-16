@@ -123,7 +123,13 @@ class ElasticsearchClusterController extends AbstractAppController
             $clusterSettingModel = new ElasticsearchClusterSettingModel();
             $clusterSettingModel->setType($type);
             $clusterSettingModel->setSetting($setting);
-            $clusterSettingModel->setValue($clusterSettings[$setting]);
+            if (true === is_array($clusterSettings[$setting])) {
+                $clusterSettingModel->setIsArray(true);
+                $clusterSettingModel->setValue(implode(',', $clusterSettings[$setting]));
+            } else {
+                $clusterSettingModel->setIsArray(false);
+                $clusterSettingModel->setValue($clusterSettings[$setting]);
+            }
             $form = $this->createForm(ElasticsearchClusterSettingType::class, $clusterSettingModel);
 
             $form->handleRequest($request);

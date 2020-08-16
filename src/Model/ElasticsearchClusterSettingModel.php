@@ -12,6 +12,8 @@ class ElasticsearchClusterSettingModel extends AbstractAppModel
 
     private $value;
 
+    private $isArray;
+
     public function getType(): ?string
     {
         return $this->type;
@@ -48,11 +50,29 @@ class ElasticsearchClusterSettingModel extends AbstractAppModel
         return $this;
     }
 
+    public function getIsArray(): ?bool
+    {
+        return $this->isArray;
+    }
+
+    public function setIsArray(bool $isArray): self
+    {
+        $this->value = $isArray;
+
+        return $this;
+    }
+
     public function getJson(): array
     {
+        $value = $this->getValue();
+
+        if (true === $this->getIsArray()) {
+            $value = explode(',', $value);
+        }
+
         $json = [
             $this->getType() => [
-                $this->getSetting() => $this->getValue(),
+                $this->getSetting() => $value,
             ],
         ];
 

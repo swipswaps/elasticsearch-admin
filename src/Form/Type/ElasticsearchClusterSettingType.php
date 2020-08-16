@@ -6,6 +6,7 @@ use App\Model\ElasticsearchClusterSettingModel;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\NotBlank;
 
@@ -16,6 +17,7 @@ class ElasticsearchClusterSettingType extends AbstractType
         $fields = [];
 
         $fields[] = 'value';
+        $fields[] = 'is_array';
 
         foreach ($fields as $field) {
             switch ($field) {
@@ -26,6 +28,14 @@ class ElasticsearchClusterSettingType extends AbstractType
                         'constraints' => [
                             new NotBlank(),
                         ],
+                    ]);
+                    break;
+                case 'is_array':
+                    $builder->add('is_array', CheckboxType::class, [
+                        'label' => 'is_array',
+                        'required' => false,
+                        'help' => 'help_form.cluster_setting.is_array',
+                        'help_html' => true,
                     ]);
                     break;
             }
